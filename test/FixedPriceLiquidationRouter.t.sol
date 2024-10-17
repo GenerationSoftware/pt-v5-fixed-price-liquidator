@@ -5,25 +5,25 @@ import "forge-std/Test.sol";
 import { IERC20 } from "openzeppelin/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
-import { TpdaLiquidationPairFactory } from "../src/TpdaLiquidationPairFactory.sol";
-import { TpdaLiquidationPair } from "../src/TpdaLiquidationPair.sol";
+import { FixedPriceLiquidationPairFactory } from "../src/FixedPriceLiquidationPairFactory.sol";
+import { FixedPriceLiquidationPair } from "../src/FixedPriceLiquidationPair.sol";
 
-import { UndefinedTpdaLiquidationPairFactory, UnknownTpdaLiquidationPair, SwapExpired, InvalidSender, TpdaLiquidationRouter } from "../src/TpdaLiquidationRouter.sol";
+import { UndefinedFixedPriceLiquidationPairFactory, UnknownFixedPriceLiquidationPair, SwapExpired, InvalidSender, FixedPriceLiquidationRouter } from "../src/FixedPriceLiquidationRouter.sol";
 
-contract TpdaLiquidationRouterTest is Test {
+contract FixedPriceLiquidationRouterTest is Test {
   using SafeERC20 for IERC20;
 
   IERC20 tokenIn;
   IERC20 tokenOut;
   address target;
-  TpdaLiquidationPairFactory factory;
-  TpdaLiquidationPair liquidationPair;
+  FixedPriceLiquidationPairFactory factory;
+  FixedPriceLiquidationPair liquidationPair;
 
-  TpdaLiquidationRouter router;
+  FixedPriceLiquidationRouter router;
 
-  event LiquidationRouterCreated(TpdaLiquidationPairFactory indexed liquidationPairFactory);
+  event LiquidationRouterCreated(FixedPriceLiquidationPairFactory indexed liquidationPairFactory);
   event SwappedExactAmountOut(
-    TpdaLiquidationPair indexed liquidationPair,
+    FixedPriceLiquidationPair indexed liquidationPair,
     address indexed sender,
     address indexed receiver,
     uint256 amountOut,
@@ -33,7 +33,7 @@ contract TpdaLiquidationRouterTest is Test {
   );
 
   function setUp() public {
-    factory = TpdaLiquidationPairFactory(makeAddr("LiquidationPairFactory"));
+    factory = FixedPriceLiquidationPairFactory(makeAddr("LiquidationPairFactory"));
     vm.etch(address(factory), "LiquidationPairFactory");
 
     tokenIn = IERC20(makeAddr("tokenIn"));
@@ -41,7 +41,7 @@ contract TpdaLiquidationRouterTest is Test {
     tokenOut = IERC20(makeAddr("tokenOut"));
     vm.etch(address(tokenOut), "tokenOut");
 
-    liquidationPair = TpdaLiquidationPair(makeAddr("LiquidationPair"));
+    liquidationPair = FixedPriceLiquidationPair(makeAddr("LiquidationPair"));
     vm.etch(address(liquidationPair), "LiquidationPair");
 
     vm.mockCall(
@@ -65,12 +65,12 @@ contract TpdaLiquidationRouterTest is Test {
       abi.encode(true)
     );
 
-    router = new TpdaLiquidationRouter(factory);
+    router = new FixedPriceLiquidationRouter(factory);
   }
 
   function testConstructor_badFactory() public {
-    vm.expectRevert(abi.encodeWithSelector(UndefinedTpdaLiquidationPairFactory.selector));
-    new TpdaLiquidationRouter(TpdaLiquidationPairFactory(address(0)));
+    vm.expectRevert(abi.encodeWithSelector(UndefinedFixedPriceLiquidationPairFactory.selector));
+    new FixedPriceLiquidationRouter(FixedPriceLiquidationPairFactory(address(0)));
   }
 
   function testSwapExactAmountOut_happyPath() public {
@@ -132,7 +132,7 @@ contract TpdaLiquidationRouterTest is Test {
       abi.encodeCall(factory.deployedPairs, address(this)),
       abi.encode(false)
     );
-    vm.expectRevert(abi.encodeWithSelector(UnknownTpdaLiquidationPair.selector, address(this)));
+    vm.expectRevert(abi.encodeWithSelector(UnknownFixedPriceLiquidationPair.selector, address(this)));
     router.flashSwapCallback(address(this), 0, 0, abi.encode(address(this)));
   }
 
@@ -159,7 +159,7 @@ contract TpdaLiquidationRouterTest is Test {
       abi.encodeCall(factory.deployedPairs, address(liquidationPair)),
       abi.encode(false)
     );
-    vm.expectRevert(abi.encodeWithSelector(UnknownTpdaLiquidationPair.selector, liquidationPair));
+    vm.expectRevert(abi.encodeWithSelector(UnknownFixedPriceLiquidationPair.selector, liquidationPair));
     router.swapExactAmountOut(liquidationPair, address(this), 1e18, 2e18, block.timestamp);
   }
 }

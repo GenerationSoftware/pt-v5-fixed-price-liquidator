@@ -5,14 +5,14 @@ import { IERC20 } from "openzeppelin/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 import { IFlashSwapCallback } from "pt-v5-liquidator-interfaces/IFlashSwapCallback.sol";
-import { TpdaLiquidationPair } from "./TpdaLiquidationPair.sol";
-import { TpdaLiquidationPairFactory } from "./TpdaLiquidationPairFactory.sol";
+import { FixedPriceLiquidationPair } from "./FixedPriceLiquidationPair.sol";
+import { FixedPriceLiquidationPairFactory } from "./FixedPriceLiquidationPairFactory.sol";
 
 /// @notice Thrown when the liquidation pair factory is the zero address
-error UndefinedTpdaLiquidationPairFactory();
+error UndefinedFixedPriceLiquidationPairFactory();
 
 /// @notice Throw when the liquidation pair was not created by the liquidation pair factory
-error UnknownTpdaLiquidationPair(address liquidationPair);
+error UnknownFixedPriceLiquidationPair(address liquidationPair);
 
 /// @notice Thrown when a swap deadline has passed
 error SwapExpired(uint256 deadline);
@@ -20,16 +20,16 @@ error SwapExpired(uint256 deadline);
 /// @notice Thrown when the router is used as a receiver in a swap by another EOA or contract
 error InvalidSender(address sender);
 
-/// @title TpdaLiquidationRouter
+/// @title FixedPriceLiquidationRouter
 /// @author G9 Software Inc.
 /// @notice Serves as the user-facing swapping interface for Liquidation Pairs.
-contract TpdaLiquidationRouter is IFlashSwapCallback {
+contract FixedPriceLiquidationRouter is IFlashSwapCallback {
     using SafeERC20 for IERC20;
 
     /* ============ Events ============ */
 
     /// @notice Emitted when the router is created
-    event LiquidationRouterCreated(TpdaLiquidationPairFactory indexed liquidationPairFactory);
+    event LiquidationRouterCreated(FixedPriceLiquidationPairFactory indexed liquidationPairFactory);
 
     /// @notice Emitted after a swap occurs
     /// @param liquidationPair The pair that was swapped against
@@ -40,7 +40,7 @@ contract TpdaLiquidationRouter is IFlashSwapCallback {
     /// @param amountIn The amount of input tokens that were actually used
     /// @param deadline The deadline for the swap
     event SwappedExactAmountOut(
-        TpdaLiquidationPair indexed liquidationPair,
+        FixedPriceLiquidationPair indexed liquidationPair,
         address indexed sender,
         address indexed receiver,
         uint256 amountOut,
@@ -51,15 +51,15 @@ contract TpdaLiquidationRouter is IFlashSwapCallback {
 
     /* ============ Variables ============ */
 
-    /// @notice The TpdaLiquidationPairFactory that this router uses.
-    /// @dev TpdaLiquidationPairs will be checked to ensure they were created by the factory
-    TpdaLiquidationPairFactory internal immutable _liquidationPairFactory;
+    /// @notice The FixedPriceLiquidationPairFactory that this router uses.
+    /// @dev FixedPriceLiquidationPairs will be checked to ensure they were created by the factory
+    FixedPriceLiquidationPairFactory internal immutable _liquidationPairFactory;
 
     /// @notice Constructs a new LiquidationRouter
     /// @param liquidationPairFactory_ The factory that pairs will be verified to have been created by
-    constructor(TpdaLiquidationPairFactory liquidationPairFactory_) {
+    constructor(FixedPriceLiquidationPairFactory liquidationPairFactory_) {
         if (address(liquidationPairFactory_) == address(0)) {
-            revert UndefinedTpdaLiquidationPairFactory();
+            revert UndefinedFixedPriceLiquidationPairFactory();
         }
         _liquidationPairFactory = liquidationPairFactory_;
 
@@ -76,12 +76,12 @@ contract TpdaLiquidationRouter is IFlashSwapCallback {
     /// @param _deadline The timestamp that the swap must be completed by
     /// @return The actual number of input tokens used
     function swapExactAmountOut(
-        TpdaLiquidationPair _liquidationPair,
+        FixedPriceLiquidationPair _liquidationPair,
         address _receiver,
         uint256 _amountOut,
         uint256 _amountInMax,
         uint256 _deadline
-    ) external onlyTrustedTpdaLiquidationPair(address(_liquidationPair)) returns (uint256) {
+    ) external onlyTrustedFixedPriceLiquidationPair(address(_liquidationPair)) returns (uint256) {
         if (block.timestamp > _deadline) {
             revert SwapExpired(_deadline);
         }
@@ -114,20 +114,20 @@ contract TpdaLiquidationRouter is IFlashSwapCallback {
         uint256 _amountIn,
         uint256,
         bytes calldata _flashSwapData
-    ) external override onlyTrustedTpdaLiquidationPair(msg.sender) onlySelf(_sender) {
+    ) external override onlyTrustedFixedPriceLiquidationPair(msg.sender) onlySelf(_sender) {
         address _originalSender = abi.decode(_flashSwapData, (address));
-        IERC20(TpdaLiquidationPair(msg.sender).tokenIn()).safeTransferFrom(
+        IERC20(FixedPriceLiquidationPair(msg.sender).tokenIn()).safeTransferFrom(
             _originalSender,
-            TpdaLiquidationPair(msg.sender).target(),
+            FixedPriceLiquidationPair(msg.sender).target(),
             _amountIn
         );
     }
 
     /// @notice Checks that the given pair was created by the factory
     /// @param _liquidationPair The pair address to check
-    modifier onlyTrustedTpdaLiquidationPair(address _liquidationPair) {
+    modifier onlyTrustedFixedPriceLiquidationPair(address _liquidationPair) {
         if (!_liquidationPairFactory.deployedPairs(_liquidationPair)) {
-            revert UnknownTpdaLiquidationPair(_liquidationPair);
+            revert UnknownFixedPriceLiquidationPair(_liquidationPair);
         }
         _;
     }

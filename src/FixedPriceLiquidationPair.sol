@@ -30,7 +30,7 @@ uint192 constant MIN_PRICE = 100;
 /// @notice This contract sells one token for another at a target time interval. The pricing algorithm is designed
 /// such that the price of the auction is inversely proportional to the time since the last auction.
 /// auctionPrice = (targetAuctionPeriod / elapsedTimeSinceLastAuction) * lastAuctionPrice
-contract TpdaLiquidationPair is ILiquidationPair {
+contract FixedPriceLiquidationPair is ILiquidationPair {
 
     /// @notice Emitted when a swap is made
     /// @param sender The sender of the swap
@@ -51,8 +51,8 @@ contract TpdaLiquidationPair is ILiquidationPair {
     /// @notice The liquidation source
     ILiquidationSource public immutable source;
 
-    /// @notice The target time interval between auctions
-    uint256 public immutable targetAuctionPeriod;
+    /// @notice The target price of the auction
+    uint256 public immutable targetAuctionPrice;
 
     /// @notice The token that is being purchased
     IERC20 internal immutable _tokenIn;
@@ -63,25 +63,17 @@ contract TpdaLiquidationPair is ILiquidationPair {
     /// @notice The degree of smoothing to apply to the available token balance
     uint256 public immutable smoothingFactor;    
 
-    /// @notice The time at which the last auction occurred
-    uint64 public lastAuctionAt;
-
-    /// @notice The price of the last auction
-    uint192 public lastAuctionPrice;
-
-    /// @notice Constructors a new TpdaLiquidationPair
+    /// @notice Constructors a new FixedPriceLiquidationPair
     /// @param _source The liquidation source
     /// @param __tokenIn The token that is being purchased by the source
     /// @param __tokenOut The token that is being sold by the source
-    /// @param _targetAuctionPeriod The target time interval between auctions
     /// @param _targetAuctionPrice The first target price of the auction
     /// @param _smoothingFactor The degree of smoothing to apply to the available token balance
     constructor (
         ILiquidationSource _source,
         address __tokenIn,
         address __tokenOut,
-        uint64 _targetAuctionPeriod,
-        uint192 _targetAuctionPrice,
+        uint256 _targetAuctionPrice,
         uint256 _smoothingFactor
     ) {
         if (_smoothingFactor >= 1e18) {
@@ -91,11 +83,8 @@ contract TpdaLiquidationPair is ILiquidationPair {
         source = _source;
         _tokenIn = IERC20(__tokenIn);
         _tokenOut = IERC20(__tokenOut);
-        targetAuctionPeriod = _targetAuctionPeriod;
+        targetAuctionPrice = _targetAuctionPrice;
         smoothingFactor = _smoothingFactor;
-
-        lastAuctionAt = uint64(block.timestamp);
-        lastAuctionPrice = _targetAuctionPrice;
     }
 
     /// @inheritdoc ILiquidationPair
@@ -129,14 +118,11 @@ contract TpdaLiquidationPair is ILiquidationPair {
             revert ReceiverIsZero();
         }
 
-        uint192 swapAmountIn = _computePrice();
+        uint256 swapAmountIn = _computePrice();
 
         if (swapAmountIn > _amountInMax) {
             revert SwapExceedsMax(_amountInMax, swapAmountIn);
         }
-
-        lastAuctionAt = uint64(block.timestamp);
-        lastAuctionPrice = swapAmountIn;
 
         uint256 availableOut = _availableBalance();
         if (_amountOut > availableOut) {
@@ -171,14 +157,6 @@ contract TpdaLiquidationPair is ILiquidationPair {
         return _computePrice();
     }
 
-    /// @notice Computes the time at which the given auction price will occur
-    /// @param price The price of the auction
-    /// @return The timestamp at which the given price will occur
-    function computeTimeForPrice(uint256 price) external view returns (uint256) {
-        // p2/p1 = t/e => e = (t*p1)/p2
-        return lastAuctionAt + (targetAuctionPeriod * lastAuctionPrice) / price;
-    }
-
     /// @notice Computes the available balance of the tokens to be sold
     /// @return The available balance of the tokens
     function _availableBalance() internal returns (uint256) {
@@ -187,18 +165,8 @@ contract TpdaLiquidationPair is ILiquidationPair {
 
     /// @notice Computes the current auction price
     /// @return The current auction price
-    function _computePrice() internal view returns (uint192) {
-        uint256 elapsedTime = block.timestamp - lastAuctionAt;
-        if (elapsedTime == 0) {
-            return type(uint192).max;
-        }
-        uint192 price = uint192((targetAuctionPeriod * lastAuctionPrice) / elapsedTime);
-
-        if (price < MIN_PRICE) {
-            price = MIN_PRICE;
-        }
-
-        return price;
+    function _computePrice() internal view returns (uint256) {
+        return targetAuctionPrice;
     }
 
 }

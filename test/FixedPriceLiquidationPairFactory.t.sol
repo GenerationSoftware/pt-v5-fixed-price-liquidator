@@ -4,29 +4,27 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import { ILiquidationSource } from "pt-v5-liquidator-interfaces/ILiquidationSource.sol";
 
-import { TpdaLiquidationPairFactory } from "../src/TpdaLiquidationPairFactory.sol";
-import { TpdaLiquidationPair } from "../src/TpdaLiquidationPair.sol";
+import { FixedPriceLiquidationPairFactory } from "../src/FixedPriceLiquidationPairFactory.sol";
+import { FixedPriceLiquidationPair } from "../src/FixedPriceLiquidationPair.sol";
 
-contract TpdaLiquidationPairFactoryTest is Test {
+contract FixedPriceLiquidationPairFactoryTest is Test {
   /* ============ Variables ============ */
-  TpdaLiquidationPairFactory public factory;
+  FixedPriceLiquidationPairFactory public factory;
   address public source;
   address public target;
   address tokenIn;
   address tokenOut;
-  uint64 targetAuctionPeriod = 1 hours;
-  uint192 auctionTargetPrice = 1e18;
+  uint256 auctionTargetPrice = 1e18;
   uint256 smoothing = 0.1e18;
 
   /* ============ Events ============ */
 
   event PairCreated(
-    TpdaLiquidationPair indexed pair,
+    FixedPriceLiquidationPair indexed pair,
     ILiquidationSource source,
     address indexed tokenIn,
     address indexed tokenOut,
-    uint64 targetAuctionPeriod,
-    uint192 targetAuctionPrice,
+    uint256 targetAuctionPrice,
     uint256 smoothingFactor
   );
 
@@ -34,7 +32,7 @@ contract TpdaLiquidationPairFactoryTest is Test {
 
   function setUp() public {
     // Contract setup
-    factory = new TpdaLiquidationPairFactory();
+    factory = new FixedPriceLiquidationPairFactory();
     tokenIn = makeAddr("tokenIn");
     tokenOut = makeAddr("tokenOut");
     source = makeAddr("source");
@@ -49,11 +47,10 @@ contract TpdaLiquidationPairFactoryTest is Test {
   function testCreatePair() public {
     vm.expectEmit(false, false, false, true);
     emit PairCreated(
-      TpdaLiquidationPair(0x0000000000000000000000000000000000000000),
+      FixedPriceLiquidationPair(0x0000000000000000000000000000000000000000),
       ILiquidationSource(source),
       tokenIn,
       tokenOut,
-      targetAuctionPeriod,
       auctionTargetPrice,
       smoothing
     );
@@ -62,11 +59,10 @@ contract TpdaLiquidationPairFactoryTest is Test {
 
     assertEq(factory.totalPairs(), 0, "no pairs exist");
 
-    TpdaLiquidationPair lp = factory.createPair(
+    FixedPriceLiquidationPair lp = factory.createPair(
       ILiquidationSource(source),
       tokenIn,
       tokenOut,
-      targetAuctionPeriod,
       auctionTargetPrice,
       smoothing
     );
@@ -79,8 +75,6 @@ contract TpdaLiquidationPairFactoryTest is Test {
     assertEq(address(lp.source()), source);
     assertEq(address(lp.tokenIn()), tokenIn);
     assertEq(address(lp.tokenOut()), tokenOut);
-    assertEq(lp.targetAuctionPeriod(), targetAuctionPeriod);
-    assertEq(lp.lastAuctionPrice(), auctionTargetPrice);
   }
 
   function mockLiquidatableBalanceOf(uint256 amount) public {
