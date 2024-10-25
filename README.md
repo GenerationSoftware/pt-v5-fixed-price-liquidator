@@ -5,6 +5,13 @@
 
 The FixedPriceLiquidationPair is designed to liquidate accrued yield on PoolTogether V5 vaults.  The Fixed Price Auction has a fixed price for the yield. Once the yield accrues to the fixed price value, arbitrageurs are motivated to swap.
 
+## Deployments
+
+| Chain | Contract | Address |
+| ---- | ----- | ------ |
+| Ethereum | FixedPriceLiquidationPair | [0xa1739ECE7a90243443543EA57EB5bfB5f4f8E606](https://etherscan.io/address/0xa1739ECE7a90243443543EA57EB5bfB5f4f8E606) |
+| Ethereum | FixedPriceLiquidationRouter | [0x91b718F250A74Ad80da828d7D60b13993275d43c](https://etherscan.io/address/0x91b718F250A74Ad80da828d7D60b13993275d43c) |
+
 ## Motivation
 
 The fixed price lets us efficiently liquidate yield for vaults that have very low amounts of TVL.
